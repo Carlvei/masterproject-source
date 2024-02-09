@@ -4,7 +4,9 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Public/HeightMapGenerator.h"
 #include "LandscapeMasterProject.generated.h"
+
 
 UENUM()
 enum class QuadsPerSectionOnOneAxis : uint16 {
@@ -64,23 +66,6 @@ protected:
 	UPROPERTY(EditAnywhere, Meta = (MakeEditWidget = true))
 	QuadsPerSectionOnOneAxis QuadsPerSectionOnOneAxisInput = QuadsPerSectionOnOneAxis::I255;
 
-	UPROPERTY(EditAnywhere, Meta = (MakeEditWidget = true))
-	uint16 HeightDataValue = 32768;
-
-	UPROPERTY(EditAnywhere, Meta = (MakeEditWidget = true))
-	FVector ScaleVector = FVector(128, 128, 128);
-
-	UPROPERTY(EditAnywhere, Meta = (MakeEditWidget = true))
-	uint16 Amplitude = 3000;
-
-	UPROPERTY(EditAnywhere, Meta = (MakeEditWidget = true))
-	uint16 TotalAmplitude = 0;
-
-	UPROPERTY(EditAnywhere, Meta = (MakeEditWidget = true))
-	double Persistance = 0.55;
-
-	UPROPERTY(EditAnywhere, Meta = (MakeEditWidget = true))
-	uint16 SmoothingIterations = 1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Materials)
 	UMaterialInstance* GroundMaterial;
@@ -93,6 +78,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, Meta = (MakeEditWidget = true))
 	float SpawnThreshhold = 0.0001;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	UHeightMapGenerator* HeightMapGenerator;
 
 
 public:	

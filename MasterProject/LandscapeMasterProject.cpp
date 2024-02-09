@@ -1,14 +1,16 @@
 // Fill out your copyright notice in the Description page of Project Settings.
-#include <iostream>
-#include <array>
-#include <random>
 #include "Landscape.h"
 #include "LandscapeMasterProject.h"
 #include "Engine/StaticMeshActor.h"
 #include <Editor/LandscapeEditor/Public/LandscapeEditorObject.h>
 #include <math.h>
-#include <iostream>
 #include <conio.h>
+
+#include <iostream>
+#include <iostream>
+#include <array>
+#include <random>
+
 
 UE_DISABLE_OPTIMIZATION
 double interpolate(double a, double b, double alpha) {
@@ -125,6 +127,8 @@ ALandscapeMasterProject::ALandscapeMasterProject()
 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = false;
 
+	HeightMapGenerator = CreateDefaultSubobject<UHeightMapGenerator>(TEXT("HeightMapGenerator"));
+
 }
 
 // Called when the game starts or when spawned
@@ -159,10 +163,13 @@ void ALandscapeMasterProject::BeginPlay()
 		const int h = TotalSizeOnOneAxis;
 
 		double** noise = white_noise(w, h);
-		double** perlinnoise = perlin_noise(noise, w, h, 8, Persistance, Amplitude, TotalAmplitude);
+		double** perlinnoise = perlin_noise(noise, w, h, 8, 
+			HeightMapGenerator -> Persistance, 
+			HeightMapGenerator -> Amplitude, 
+			HeightMapGenerator-> TotalAmplitude);
 
 		// Smooth
-		for (int iterations = 0; iterations < SmoothingIterations; iterations++) {
+		for (int iterations = 0; iterations < HeightMapGenerator-> SmoothingIterations; iterations++) {
 			for (int x = 0; x < w; x++) {
 				for (int y = 0; y < h; y++) {
 					if (x != 0 && x != w - 1 && y != 0 && y != h - 1) {
@@ -191,7 +198,7 @@ void ALandscapeMasterProject::BeginPlay()
 			for (uint32_t y = 0; y < TotalSizeOnOneAxis; y++) {
 				int index = x + TotalSizeOnOneAxis * y;
 
-				HeightData[index] = perlinnoise[x][y]  + HeightDataValue;
+				HeightData[index] = perlinnoise[x][y]  + HeightMapGenerator -> HeightDataValue;
 			}
 		}
 		HeightDataPerLayers.Add(FGuid(), MoveTemp(HeightData));
@@ -214,7 +221,7 @@ void ALandscapeMasterProject::BeginPlay()
 		Landscape->LandscapeMaterial = GroundMaterial;
 
 		Landscape->SetActorTransform(LandscapeTransform);
-		Landscape->SetActorScale3D(ScaleVector);
+		Landscape->SetActorScale3D(HeightMapGenerator -> ScaleVector);
 
 		//const FGuid& InGuid, int32 InMinX, int32 InMinY, int32 InMaxX, int32 InMaxY, int32 InNumSubsections, int32 InSubsectionSizeQuads, const TMap<FGuid, TArray<uint16>>& InImportHeightData,
 		//	const TCHAR* const InHeightmapFileName, const TMap<FGuid, TArray<FLandscapeImportLayerInfo>>& InImportMaterialLayerInfos, ELandscapeImportAlphamapType InImportMaterialLayerType, const TArray<struct FLandscapeLayer>* InImportLayers = nullptr
