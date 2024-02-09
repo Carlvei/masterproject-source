@@ -8,7 +8,7 @@ public class MasterProject : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "Foliage", "LandscapeEditor", "Landscape", "UnrealEd" });
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "Foliage", "LandscapeEditor", "Landscape", "UnrealEd", "StaticMeshEditor" });
         
         PrivateDependencyModuleNames.AddRange(new string[] { });
 

@@ -2,11 +2,11 @@
 #include <iostream>
 #include <array>
 #include <random>
-#include "LandscapeMasterProject.h"
-#include <Editor/LandscapeEditor/Public/LandscapeEditorObject.h>
 #include "Landscape.h"
+#include "LandscapeMasterProject.h"
+#include "Engine/StaticMeshActor.h"
+#include <Editor/LandscapeEditor/Public/LandscapeEditorObject.h>
 #include <math.h>
-
 #include <iostream>
 #include <conio.h>
 
@@ -96,11 +96,26 @@ double** white_noise(int w, int h) {
 
 	for (int i = 0; i < w; i++) {
 		for (int j = 0; j < h; j++) {
-			noise[i][j] = (float)rand() / RAND_MAX;
+			noise[i][j] = (float) rand() / RAND_MAX;
 		}
 	}
 
 	return noise;
+}
+
+void spawnActor(UWorld* World, UStaticMesh* Mesh, FVector Location) {
+	AStaticMeshActor* NewActor = World->SpawnActor<AStaticMeshActor>();
+
+	NewActor->SetActorLocation(Location);
+	UStaticMeshComponent* MeshComponent = NewActor->GetStaticMeshComponent();
+	if (MeshComponent)
+	{
+		MeshComponent->SetStaticMesh(Mesh);
+	}
+}
+
+float random() {
+	return (float)rand() / RAND_MAX;
 }
 
 
@@ -117,197 +132,122 @@ void ALandscapeMasterProject::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (static_cast<int>(GenerateNewLandscape) == 1) {
+		uint32_t SectionsPerComponent = static_cast<int>(SectionsPerComponentInput);
+		uint32_t ComponentsOnOneAxis = static_cast<int>(ComponentsOnOneAxisInput);
+		uint32_t QuadsPerSectionOnOneAxis = static_cast<int>(QuadsPerSectionOnOneAxisInput);
 
-	uint32_t SectionsPerComponent = static_cast<int>(SectionsPerComponentInput);
-	uint32_t ComponentsOnOneAxis = static_cast<int>(ComponentsOnOneAxisInput);
-	uint32_t QuadsPerSectionOnOneAxis = static_cast<int>(QuadsPerSectionOnOneAxisInput);
-
-	uint32_t TotalComponents = ComponentsOnOneAxis * ComponentsOnOneAxis;
-	uint32_t QuadsPerSection = QuadsPerSectionOnOneAxis * QuadsPerSectionOnOneAxis;
-	uint32_t QuadsPerComponent = QuadsPerSection * SectionsPerComponent;
-	uint32_t ComponentSize = sqrt(QuadsPerComponent);
-	uint32_t TotalSizeOnOneAxis = ComponentSize * ComponentsOnOneAxis + 1;
-
-
-	FTransform LandscapeTransform = FTransform(FVector(0));
-
-	TArray<FLandscapeImportLayerInfo> MaterialImportLayers;
-	MaterialImportLayers.Reserve(0);
+		uint32_t TotalComponents = ComponentsOnOneAxis * ComponentsOnOneAxis;
+		uint32_t QuadsPerSection = QuadsPerSectionOnOneAxis * QuadsPerSectionOnOneAxis;
+		uint32_t QuadsPerComponent = QuadsPerSection * SectionsPerComponent;
+		uint32_t ComponentSize = sqrt(QuadsPerComponent);
+		uint32_t TotalSizeOnOneAxis = ComponentSize * ComponentsOnOneAxis + 1;
 
 
-	TMap<FGuid, TArray<uint16>> HeightDataPerLayers;
-	TMap<FGuid, TArray<FLandscapeImportLayerInfo>> MaterialLayerDataPerLayers;
+		FTransform LandscapeTransform = FTransform(FVector(0));
 
-	TArray<uint16> HeightData;
+		TArray<FLandscapeImportLayerInfo> MaterialImportLayers;
+		MaterialImportLayers.Reserve(0);
 
-	const int w = TotalSizeOnOneAxis;
-	const int h = TotalSizeOnOneAxis;
 
-	double** noise = white_noise(w, h);
-	double** perlinnoise = perlin_noise(noise, w, h, 8, Persistance, Amplitude, TotalAmplitude);
-	for (int iterations = 0; iterations < SmoothingIterations; iterations++) {
+		TMap<FGuid, TArray<uint16>> HeightDataPerLayers;
+		TMap<FGuid, TArray<FLandscapeImportLayerInfo>> MaterialLayerDataPerLayers;
+
+		TArray<uint16> HeightData;
+
+		const int w = TotalSizeOnOneAxis;
+		const int h = TotalSizeOnOneAxis;
+
+		double** noise = white_noise(w, h);
+		double** perlinnoise = perlin_noise(noise, w, h, 8, Persistance, Amplitude, TotalAmplitude);
+
+		// Smooth
+		for (int iterations = 0; iterations < SmoothingIterations; iterations++) {
+			for (int x = 0; x < w; x++) {
+				for (int y = 0; y < h; y++) {
+					if (x != 0 && x != w - 1 && y != 0 && y != h - 1) {
+						double sum = perlinnoise[x - 1][y - 1] +
+							perlinnoise[x - 1][y] +
+							perlinnoise[x - 1][y + 1] +
+							perlinnoise[x][y - 1] +
+							perlinnoise[x][y] +
+							perlinnoise[x][y + 1] +
+							perlinnoise[x + 1][y - 1] +
+							perlinnoise[x + 1][y] +
+							perlinnoise[x + 1][y + 1];
+
+						double average = sum / (double)9;
+
+						perlinnoise[x][y] = average;
+					}
+				}
+			}
+		}
+
+		HeightData.SetNum(TotalSizeOnOneAxis * TotalSizeOnOneAxis);
+
+		int32 counter = 0;
+		for (uint32_t x = 0; x < TotalSizeOnOneAxis; x++) {
+			for (uint32_t y = 0; y < TotalSizeOnOneAxis; y++) {
+				int index = x + TotalSizeOnOneAxis * y;
+
+				HeightData[index] = perlinnoise[x][y]  + HeightDataValue;
+			}
+		}
+		HeightDataPerLayers.Add(FGuid(), MoveTemp(HeightData));
+		// ComputeHeightData will also modify/expand material layers data, which is why we create MaterialLayerDataPerLayers after calling ComputeHeightData
+		MaterialLayerDataPerLayers.Add(FGuid(), MoveTemp(MaterialImportLayers));
+
+		//FScopedTransaction Transaction(TEXT("Undo", "Creating New Landscape"));
+
+		UWorld* World = nullptr;
+		{
+			// We want to create the landscape in the landscape editor mode's world
+			FWorldContext& EditorWorldContext = GEditor->GetEditorWorldContext();
+			World = EditorWorldContext.World();
+
+		}
+
+		ALandscape* Landscape = World->SpawnActor<ALandscape>();
+
+		Landscape->bCanHaveLayersContent = false;
+		Landscape->LandscapeMaterial = GroundMaterial;
+
+		Landscape->SetActorTransform(LandscapeTransform);
+		Landscape->SetActorScale3D(ScaleVector);
+
+		//const FGuid& InGuid, int32 InMinX, int32 InMinY, int32 InMaxX, int32 InMaxY, int32 InNumSubsections, int32 InSubsectionSizeQuads, const TMap<FGuid, TArray<uint16>>& InImportHeightData,
+		//	const TCHAR* const InHeightmapFileName, const TMap<FGuid, TArray<FLandscapeImportLayerInfo>>& InImportMaterialLayerInfos, ELandscapeImportAlphamapType InImportMaterialLayerType, const TArray<struct FLandscapeLayer>* InImportLayers = nullptr
+
+		Landscape->Import(FGuid::NewGuid(), 0, 0, TotalSizeOnOneAxis - 1, TotalSizeOnOneAxis - 1, SectionsPerComponent, QuadsPerSectionOnOneAxis, HeightDataPerLayers, nullptr, MaterialLayerDataPerLayers, ELandscapeImportAlphamapType::Additive);
+
+		Landscape->StaticLightingLOD = FMath::DivideAndRoundUp(FMath::CeilLogTwo((TotalSizeOnOneAxis * TotalSizeOnOneAxis) / (2048 * 2048) + 1), (uint32)2);
+		// Register all the landscape components
+		ULandscapeInfo* LandscapeInfo = Landscape->GetLandscapeInfo();
+
+		LandscapeInfo->UpdateLayerInfoMap(Landscape);
+
+
+		Landscape->RegisterAllComponents();
+
+		// Need to explicitly call PostEditChange on the LandscapeMaterial property or the landscape proxy won't update its material
+		FPropertyChangedEvent MaterialPropertyChangedEvent(FindFieldChecked< FProperty >(Landscape->GetClass(), FName("LandscapeMaterial")));
+		Landscape->PostEditChangeProperty(MaterialPropertyChangedEvent);
+		Landscape->PostEditChange();
+
+		if (GEngine) {
+			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Landscape was created?!"));
+		}
+		
 		for (int x = 0; x < w; x++) {
 			for (int y = 0; y < h; y++) {
-				if (x != 0 && x != w - 1 && y != 0 && y != h - 1) {
-					double sum = perlinnoise[x - 1][y - 1] +
-						perlinnoise[x - 1][y] +
-						perlinnoise[x - 1][y + 1] +
-						perlinnoise[x][y - 1] +
-						perlinnoise[x][y] +
-						perlinnoise[x][y + 1] +
-						perlinnoise[x + 1][y - 1] +
-						perlinnoise[x + 1][y] +
-						perlinnoise[x + 1][y + 1];
-
-					double average = sum / (double)9;
-
-					perlinnoise[x][y] = average;
+				float rand = random();
+				if (rand < SpawnThreshhold) {
+					spawnActor(World, Mesh, FVector(x * 128, y * 128, perlinnoise[x][y]));
 				}
 			}
 		}
 	}
-
-	// Code that does things will go here(function calls to add sea-level etc.)
-	/*
-	std::random_device dev;
-	std::mt19937 rng(dev());
-	std::uniform_int_distribution<std::mt19937::result_type> dist6(1,1);
-
-	uint32_t size = TotalSizeOnOneAxis;
-	uint32_t step = 4096;
-	uint32_t half;
-	uint32_t randomScale = 1;
-
-	uint32_t FullSize = size * size;
-	uint32_t* map = new uint32_t[FullSize];
-
-	for (uint32_t x = 0; x < size; x++) {
-		for (uint32_t y = 0; y < size; y++) {
-			*(map + x * size + y) = 0;
-		}
-	}
-
-
-	for (uint32_t x = 0; x < size; x += step) {
-		for (uint32_t y = 0; y < size; y += step) {
-			int test = dist6(rng);
-			*(map + x * size + y) = test;
-		}
-	}
-
-
-
-	while (step > 1)
-	{
-		half = step / 2;
-
-		// diamondstep
-		for (uint32_t x = half; x < size; x += step) {
-			for (uint32_t y = half; y < size; y += step) {
-				float value = 0;
-				value = *(map + (x - half) * size + (y- half)) +
-					*(map + (x + half) * size + (y - half)) +
-					*(map + (x - half) * size + (y + half)) +
-					*(map + (x + half) * size + (y + half));
-
-				value /= 4.0f;
-				value += dist6(rng) * randomScale;
-				*(map + x * size + y) = value;
-			}
-		}
-
-		for (uint32_t x = 0; x < size; x += half) {
-			for (uint32_t y = (x + half) % step; y < size; y += step) {
-				float value = 0;
-				uint32_t count = 0;
-
-				uint32_t idx = (x - half) * size + y;
-				if (idx < (size * size) && idx >= 0) {
-					value += *(map + idx);
-					count++;
-				}
-				idx = (x + half) * size + y;
-				if (idx < (size * size)) {
-					value += *(map + idx);
-					count++;
-				}
-				idx = x * size + y - half;
-				if (idx < (size * size) && (y - half) >= 0) {
-					value += *(map + idx);
-					count++;
-				}
-				idx = x * size + y + half;
-				if (idx < (size * size) && y + half < size) {
-					value += *(map + idx);
-					count++;
-				}
-
-				value /= count;
-				value += dist6(rng) * randomScale;
-				*(map + x * size + y) = value;
-			}
-		}
-
-		randomScale /= 2.f;
-		step /= 2;
-	}
-	*/
-	HeightData.SetNum(TotalSizeOnOneAxis * TotalSizeOnOneAxis);
-
-	int32 counter = 0;
-	for (uint32_t x = 0; x < TotalSizeOnOneAxis; x++) {
-		for (uint32_t y = 0; y < TotalSizeOnOneAxis; y++) {
-			int index = x * TotalSizeOnOneAxis + y;
-
-			HeightData[index] = perlinnoise[x][y]  + HeightDataValue;
-		}
-	}
-	HeightDataPerLayers.Add(FGuid(), MoveTemp(HeightData));
-	// ComputeHeightData will also modify/expand material layers data, which is why we create MaterialLayerDataPerLayers after calling ComputeHeightData
-	MaterialLayerDataPerLayers.Add(FGuid(), MoveTemp(MaterialImportLayers));
-
-	//FScopedTransaction Transaction(TEXT("Undo", "Creating New Landscape"));
-
-	UWorld* World = nullptr;
-	{
-		// We want to create the landscape in the landscape editor mode's world
-		FWorldContext& EditorWorldContext = GEditor->GetEditorWorldContext();
-		World = EditorWorldContext.World();
-
-	}
-
-	ALandscape* Landscape = World->SpawnActor<ALandscape>();
-
-	Landscape->bCanHaveLayersContent = false;
-
-	Landscape->LandscapeMaterial = GroundMaterial;
-
-	Landscape->SetActorTransform(LandscapeTransform);
-	Landscape->SetActorScale3D(ScaleVector);
-
-	//const FGuid& InGuid, int32 InMinX, int32 InMinY, int32 InMaxX, int32 InMaxY, int32 InNumSubsections, int32 InSubsectionSizeQuads, const TMap<FGuid, TArray<uint16>>& InImportHeightData,
-	//	const TCHAR* const InHeightmapFileName, const TMap<FGuid, TArray<FLandscapeImportLayerInfo>>& InImportMaterialLayerInfos, ELandscapeImportAlphamapType InImportMaterialLayerType, const TArray<struct FLandscapeLayer>* InImportLayers = nullptr
-
-	Landscape->Import(FGuid::NewGuid(), 0, 0, TotalSizeOnOneAxis - 1, TotalSizeOnOneAxis - 1, SectionsPerComponent, QuadsPerSectionOnOneAxis, HeightDataPerLayers, nullptr, MaterialLayerDataPerLayers, ELandscapeImportAlphamapType::Additive);
-
-	Landscape->StaticLightingLOD = FMath::DivideAndRoundUp(FMath::CeilLogTwo((TotalSizeOnOneAxis * TotalSizeOnOneAxis) / (2048 * 2048) + 1), (uint32)2);
-	// Register all the landscape components
-	ULandscapeInfo* LandscapeInfo = Landscape->GetLandscapeInfo();
-
-	LandscapeInfo->UpdateLayerInfoMap(Landscape);
-
-
-	Landscape->RegisterAllComponents();
-
-	// Need to explicitly call PostEditChange on the LandscapeMaterial property or the landscape proxy won't update its material
-	FPropertyChangedEvent MaterialPropertyChangedEvent(FindFieldChecked< FProperty >(Landscape->GetClass(), FName("LandscapeMaterial")));
-	Landscape->PostEditChangeProperty(MaterialPropertyChangedEvent);
-	Landscape->PostEditChange();
-
-	if (GEngine) {
-		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Landscape was created?!"));
-	}
-
 }
 
 // Called every frame

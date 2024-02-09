@@ -36,6 +36,12 @@ enum class ComponentsOnOneAxis : uint16 {
 	I64 = 64 UMETA(DisplayName = "64")  // absolut keine gute Idee
 };
 
+UENUM()
+enum class GenerateNewLandscape : uint16 {
+	YES = 1 UMETA(DisplayName = "Yes"),
+	NO = 0 UMETA(DisplayName = "No")
+};
+
 UCLASS()
 class MASTERPROJECT_API ALandscapeMasterProject : public AActor
 {
@@ -78,6 +84,16 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Materials)
 	UMaterialInstance* GroundMaterial;
+
+	UPROPERTY(EditAnywhere, Meta = (MakeEditWidget = true))
+	GenerateNewLandscape GenerateNewLandscape = GenerateNewLandscape::YES;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UStaticMesh* Mesh;
+
+	UPROPERTY(EditAnywhere, Meta = (MakeEditWidget = true))
+	float SpawnThreshhold = 0.0001;
+
 
 public:	
 	// Called every frame
