@@ -19,19 +19,16 @@ public:
 	uint16 HeightDataValue = 32768;
 
 	UPROPERTY(EditAnywhere, Meta = (MakeEditWidget = true))
-	FVector ScaleVector = FVector(128, 128, 128);
-
-	UPROPERTY(EditAnywhere, Meta = (MakeEditWidget = true))
 	uint16 Amplitude = 3000;
-
-	UPROPERTY(EditAnywhere, Meta = (MakeEditWidget = true))
-	uint16 TotalAmplitude = 0;
 
 	UPROPERTY(EditAnywhere, Meta = (MakeEditWidget = true))
 	double Persistance = 0.55;
 
 	UPROPERTY(EditAnywhere, Meta = (MakeEditWidget = true))
 	uint16 SmoothingIterations = 1;
+
+	UPROPERTY(EditAnywhere, Meta = (MakeEditWidget = true))
+	uint16 Octaves = 8;
 
 	double** HeightArray;
 
@@ -50,8 +47,7 @@ private:
 
 	virtual double** SmoothNoise(double** noise, uint32_t SizeOnOneAxis, int octave);
 
-	virtual void PerlinNoise(uint32_t SizeOnOneAxis, int octaves,
-		double persistance, double amplitude, double totalamplitude);
+	virtual void PerlinNoise(uint32_t SizeOnOneAxis);
 
 	virtual double** WhiteNoise(uint32_t SizeOnOneAxis);
 

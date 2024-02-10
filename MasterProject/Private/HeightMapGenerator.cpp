@@ -36,89 +36,88 @@ double UHeightMapGenerator::Interpolate(double a, double b, double alpha) {
 	return a * (1 - alpha) + alpha * b;
 }
 
-double** UHeightMapGenerator::SmoothNoise(double** noise, uint32_t SizeOnOneAxis, int octave) {
-	double** smooth_noise = new double* [SizeOnOneAxis];
+double** UHeightMapGenerator::SmoothNoise(double** Noise, uint32_t SizeOnOneAxis, int Octave) {
+	double** SmoothNoise = new double* [SizeOnOneAxis];
 	for (uint32_t i = 0; i < SizeOnOneAxis; i++) {
-		smooth_noise[i] = new double[SizeOnOneAxis];
+		SmoothNoise[i] = new double[SizeOnOneAxis];
 	}
 
-	int period = 1 << octave;
-	double frequency = 1.0 / period;
+	int Period = 1 << Octave;
+	double Frequenzy = 1.0 / Period;
 
 	for (uint32_t i = 0; i < SizeOnOneAxis; i++) {
-		int sample_i0 = i / period * period;
-		int sample_i1 = (sample_i0 + period) % SizeOnOneAxis;
-		double horizontal_blend = (i - sample_i0) * frequency;
+		int SampleI0 = i / Period * Period;
+		int SampleI1 = (SampleI0 + Period) % SizeOnOneAxis;
+		double HorizontalBlend = (i - SampleI0) * Frequenzy;
 
 		for (uint32_t j = 0; j < SizeOnOneAxis; j++) {
-			int sample_j0 = j / period * period;
-			int sample_j1 = (sample_j0 + period) % SizeOnOneAxis;
-			double vertical_blend = (j - sample_j0) * frequency;
+			int SampleJ0 = j / Period * Period;
+			int SampleJ1 = (SampleJ0 + Period) % SizeOnOneAxis;
+			double VerticalBlend = (j - SampleJ0) * Frequenzy;
 
-			double top = Interpolate(noise[sample_i0][sample_j0],
-				noise[sample_i1][sample_j0],
-				horizontal_blend);
-			double bottom = Interpolate(noise[sample_i0][sample_j1],
-				noise[sample_i1][sample_j1],
-				horizontal_blend);
-			smooth_noise[i][j] = Interpolate(top, bottom, vertical_blend);
+			double Top = Interpolate(Noise[SampleI0][SampleJ0],
+				Noise[SampleI1][SampleJ0],
+				HorizontalBlend);
+			double Bottom = Interpolate(Noise[SampleI0][SampleJ1],
+				Noise[SampleI1][SampleJ1],
+				HorizontalBlend);
+			SmoothNoise[i][j] = Interpolate(Top, Bottom, VerticalBlend);
 		}
 	}
 
-	return smooth_noise;
+	return SmoothNoise;
 }
 
-void UHeightMapGenerator::PerlinNoise(uint32_t SizeOnOneAxis, int octaves, double persistance, double amplitude, double totalamplitude) {
-	double** noise = WhiteNoise(SizeOnOneAxis);
-	double** perlin_noise = new double* [SizeOnOneAxis];
+void UHeightMapGenerator::PerlinNoise(uint32_t SizeOnOneAxis) {
+	double** Noise = WhiteNoise(SizeOnOneAxis);
+	double** PerlinNoise = new double* [SizeOnOneAxis];
 	for (uint32_t i = 0; i < SizeOnOneAxis; i++) {
-		perlin_noise[i] = new double[SizeOnOneAxis];
+		PerlinNoise[i] = new double[SizeOnOneAxis];
 	}
 	for (uint32_t i = 0; i < SizeOnOneAxis; i++) {
 		for (uint32_t j = 0; j < SizeOnOneAxis; j++) {
-			perlin_noise[i][j] = 0;
+			PerlinNoise[i][j] = 0;
 		}
 	}
 
-	double*** smooth_noises = new double** [octaves];
-	for (int i = 0; i < octaves; i++) {
-		smooth_noises[i] = SmoothNoise(noise, SizeOnOneAxis, i);
+	double*** SmoothNoises = new double** [Octaves];
+	for (int i = 0; i < Octaves; i++) {
+		SmoothNoises[i] = SmoothNoise(Noise, SizeOnOneAxis, i);
 	}
 
-	for (int octave = octaves - 1; octave > 0; octave--) {
-		amplitude *= persistance;
-		totalamplitude += amplitude;
+	for (int octave = Octaves - 1; octave > 0; octave--) {
+		Amplitude *= Persistance;
 
 		for (uint32_t i = 0; i < SizeOnOneAxis; i++) {
 			for (uint32_t j = 0; j < SizeOnOneAxis; j++) {
-				perlin_noise[i][j] += smooth_noises[octave][i][j] * amplitude;
+				PerlinNoise[i][j] += SmoothNoises[octave][i][j] * Amplitude;
 			}
-			delete[] smooth_noises[octave][i];
+			delete[] SmoothNoises[octave][i];
 		}
-		delete[] smooth_noises[octave];
+		delete[] SmoothNoises[octave];
 	}
-	delete[] smooth_noises;
+	delete[] SmoothNoises;
 
-	HeightArray = perlin_noise;
+	HeightArray = PerlinNoise;
 }
 
 double** UHeightMapGenerator::WhiteNoise(uint32_t SizeOnOneAxis) {
-	double** noise = new double* [SizeOnOneAxis];
+	double** Noise = new double* [SizeOnOneAxis];
 	for (uint32_t i = 0; i < SizeOnOneAxis; i++) {
-		noise[i] = new double[SizeOnOneAxis];
+		Noise[i] = new double[SizeOnOneAxis];
 	}
 
 	for (uint32_t i = 0; i < SizeOnOneAxis; i++) {
 		for (uint32_t j = 0; j < SizeOnOneAxis; j++) {
-			noise[i][j] = (float)rand() / RAND_MAX;
+			Noise[i][j] = (float)rand() / RAND_MAX;
 		}
 	}
 
-	return noise;
+	return Noise;
 }
 
 void UHeightMapGenerator::GenerateHeightMap(uint32_t SizeOnOneAxis) {
-	PerlinNoise(SizeOnOneAxis, 8, Persistance, Amplitude, TotalAmplitude);
+	PerlinNoise(SizeOnOneAxis, 8);
 	SmoothHeightMap(SizeOnOneAxis);
 	TranslateIntoTArray(SizeOnOneAxis);
 }
