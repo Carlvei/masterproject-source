@@ -66,7 +66,6 @@ protected:
 	UPROPERTY(EditAnywhere, Meta = (MakeEditWidget = true))
 	QuadsPerSectionOnOneAxis QuadsPerSectionOnOneAxisInput = QuadsPerSectionOnOneAxis::I255;
 
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Materials)
 	UMaterialInstance* GroundMaterial;
 
