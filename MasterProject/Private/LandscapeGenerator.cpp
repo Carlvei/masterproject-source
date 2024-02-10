@@ -71,34 +71,36 @@ void ULandscapeGenerator::InitializeWorldContext() {
 
 void ULandscapeGenerator::GenerateLandscape(FTransform LandscapeTransform) {
 
-	CalculateParameters();
-	GenerateHeightmap();
-	GenerateMaterialImportLayers();
-	InitializeWorldContext();
+	if (static_cast<int>(GenerateNewLandscape) == 1) {
+		CalculateParameters();
+		GenerateHeightmap();
+		GenerateMaterialImportLayers();
+		InitializeWorldContext();
 	
-	Landscape = World -> SpawnActor<ALandscape>();
-	Landscape->SetFolderPath("GeneratedLandscape");
-	Landscape->bCanHaveLayersContent = false;
-	Landscape->LandscapeMaterial = GroundMaterial;
-	Landscape->SetActorTransform(LandscapeTransform);
-	Landscape->SetActorScale3D(ScaleVector);
+		Landscape = World -> SpawnActor<ALandscape>();
+		Landscape->SetFolderPath("GeneratedLandscape");
+		Landscape->bCanHaveLayersContent = false;
+		Landscape->LandscapeMaterial = GroundMaterial;
+		Landscape->SetActorTransform(LandscapeTransform);
+		Landscape->SetActorScale3D(ScaleVector);
 
-	Landscape->Import(FGuid::NewGuid(), 0, 0, TotalSizeOnOneAxis - 1, TotalSizeOnOneAxis - 1, SectionsPerComponent, QuadsPerSectionOnOneAxis, HeightDataPerLayers, nullptr, MaterialLayerDataPerLayers, ELandscapeImportAlphamapType::Additive);
+		Landscape->Import(FGuid::NewGuid(), 0, 0, TotalSizeOnOneAxis - 1, TotalSizeOnOneAxis - 1, SectionsPerComponent, QuadsPerSectionOnOneAxis, HeightDataPerLayers, nullptr, MaterialLayerDataPerLayers, ELandscapeImportAlphamapType::Additive);
 
-	Landscape->StaticLightingLOD = FMath::DivideAndRoundUp(FMath::CeilLogTwo((TotalSizeOnOneAxis * TotalSizeOnOneAxis) / (2048 * 2048) + 1), (uint32)2);
-	// Register all the landscape components
-	ULandscapeInfo* LandscapeInfo = Landscape->GetLandscapeInfo();
-	LandscapeInfo->UpdateLayerInfoMap(Landscape);
-	Landscape->RegisterAllComponents();
+		Landscape->StaticLightingLOD = FMath::DivideAndRoundUp(FMath::CeilLogTwo((TotalSizeOnOneAxis * TotalSizeOnOneAxis) / (2048 * 2048) + 1), (uint32)2);
+		// Register all the landscape components
+		ULandscapeInfo* LandscapeInfo = Landscape->GetLandscapeInfo();
+		LandscapeInfo->UpdateLayerInfoMap(Landscape);
+		Landscape->RegisterAllComponents();
 
-	// Need to explicitly call PostEditChange on the LandscapeMaterial property or the landscape proxy won't update its material
-	FPropertyChangedEvent MaterialPropertyChangedEvent(FindFieldChecked< FProperty >(Landscape->GetClass(), FName("LandscapeMaterial")));
-	Landscape->PostEditChangeProperty(MaterialPropertyChangedEvent);
-	Landscape->PostEditChange();
+		// Need to explicitly call PostEditChange on the LandscapeMaterial property or the landscape proxy won't update its material
+		FPropertyChangedEvent MaterialPropertyChangedEvent(FindFieldChecked< FProperty >(Landscape->GetClass(), FName("LandscapeMaterial")));
+		Landscape->PostEditChangeProperty(MaterialPropertyChangedEvent);
+		Landscape->PostEditChange();
 
-	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Landscape was created!"));
+		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Landscape was created!"));
 
-	GenerateFoliage();
+		GenerateFoliage();
+	}
 }
 
 void ULandscapeGenerator::GenerateFoliage() {

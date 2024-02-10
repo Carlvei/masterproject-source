@@ -28,7 +28,6 @@ void ALandscapeMasterProject::BeginPlay()
 	Super::BeginPlay();
 
 	LandscapeGenerator->GenerateLandscape(FTransform(FVector(0)));
-
 }
 
 // Called every frame

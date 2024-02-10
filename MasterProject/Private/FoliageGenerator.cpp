@@ -3,11 +3,13 @@
 
 #include "FoliageGenerator.h"
 #include "Engine/StaticMeshActor.h"
+#include <random>
 
-void SpawnActor(UWorld* World, UStaticMesh* Mesh, FVector Location, const char* path) {
+void SpawnActor(UWorld* World, UStaticMesh* Mesh, FVector Location, std::string path, FVector MeshScale) {
 	AStaticMeshActor* NewActor = World -> SpawnActor<AStaticMeshActor>();
-	NewActor -> SetFolderPath(path);
+	NewActor -> SetFolderPath(path.c_str());
 	NewActor -> SetActorLocation(Location);
+	NewActor->SetActorScale3D(MeshScale);
 	UStaticMeshComponent* MeshComponent = NewActor -> GetStaticMeshComponent();
 	if (MeshComponent)
 	{
@@ -54,10 +56,53 @@ void UFoliageGenerator::GenerateFoliage(uint32_t TotalSizeOnOneAxis, double** He
 
 	for (uint32_t x = 0; x < TotalSizeOnOneAxis; x++) {
 		for (uint32_t y = 0; y < TotalSizeOnOneAxis; y++) {
-			float rand = random();
-			if (rand < SpawnProbability) {
-				SpawnActor(World, Mesh, FVector(x * 128, y * 128, HeightArray[x][y]), "GeneratedLandscape/Foliage");
-			}
+			ComputePointInArray(x, y, Scale, HeightArray);
 		}
 	}
+
+	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Foliage was generated!"));
+}
+
+void UFoliageGenerator::ComputePointInArray(uint32_t x, uint32_t y, FVector Scale, double** HeightArray) {
+	for (FStaticMeshInput MeshInput : Meshes) {
+		float rand = random();
+
+		if (rand < MeshInput.SpawnProbability) {
+			std::random_device LocationRandomDevice; // obtain a random number from hardware
+			std::mt19937 LocationRandomGen(LocationRandomDevice()); // seed the generator
+			std::uniform_real_distribution<> LocationRandomDistr(-1, 1);
+
+			float RandLocationX = LocationRandomDistr(LocationRandomGen) * Scale.X;
+			float RandLocationY = LocationRandomDistr(LocationRandomGen) * Scale.Y;
+
+			FVector Location = FVector(x * Scale.X + RandLocationX, 
+				y * Scale.Y + RandLocationY, 
+				HeightArray[x][y]);
+
+			FVector MeshScale;
+			if (MeshInput.MinSize != 1 || MeshInput.MaxSize != 1) {
+				std::random_device rd; // obtain a random number from hardware
+				std::mt19937 gen(rd()); // seed the generator
+				std::uniform_real_distribution<> distr(MeshInput.MinSize, MeshInput.MaxSize);
+
+				float scale = distr(gen);
+				MeshScale = FVector(scale, scale, scale);
+			} else {
+				MeshScale = FVector(1, 1, 1);
+			}
+
+			SpawnActor(World, MeshInput.Mesh, Location, GenerateFolderName(MeshInput.FolderName), MeshScale);
+		}
+	}
+}
+
+std::string UFoliageGenerator::GenerateFolderName(FString FolderName) {
+	std::string Result = "GeneratedLandscape/Foliage";
+
+	if (!FolderName.IsEmpty()) {
+		Result += std::string("/");
+		Result += std::string(TCHAR_TO_ANSI(*FolderName));
+	}
+
+	return Result;
 }
