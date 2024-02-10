@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "HeightMapGenerator.h"
-#include "Engine/StaticMeshActor.h"
+#include "FoliageGenerator.h"
 #include <Editor/LandscapeEditor/Public/LandscapeEditorObject.h>
 #include "LandscapeGenerator.generated.h"
 
@@ -58,6 +58,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	UHeightMapGenerator* HeightMapGenerator;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	UFoliageGenerator* FoliageGenerator;
+
 	UPROPERTY(EditAnywhere, Meta = (MakeEditWidget = true))
 	FVector ScaleVector = FVector(128, 128, 128);
 
@@ -75,12 +78,6 @@ public:
 
 	UPROPERTY(EditAnywhere, Meta = (MakeEditWidget = true))
 	GenerateNewLandscape GenerateNewLandscape = GenerateNewLandscape::YES;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	UStaticMesh* Mesh;
-
-	UPROPERTY(EditAnywhere, Meta = (MakeEditWidget = true))
-	float SpawnThreshhold = 0.0001;
 
 	uint32_t TotalComponents;
 
@@ -120,6 +117,8 @@ public:
 
 private: 
 	virtual void GenerateHeightmap();
+
+	virtual void GenerateFoliage();
 
 	virtual void GenerateMaterialImportLayers();
 

@@ -117,7 +117,7 @@ double** UHeightMapGenerator::WhiteNoise(uint32_t SizeOnOneAxis) {
 }
 
 void UHeightMapGenerator::GenerateHeightMap(uint32_t SizeOnOneAxis) {
-	PerlinNoise(SizeOnOneAxis, 8);
+	PerlinNoise(SizeOnOneAxis);
 	SmoothHeightMap(SizeOnOneAxis);
 	TranslateIntoTArray(SizeOnOneAxis);
 }

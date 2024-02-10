@@ -7,20 +7,7 @@
 #include <iostream>
 #include <random>
 
-void spawnActor(UWorld* World, UStaticMesh* Mesh, FVector Location) {
-	AStaticMeshActor* NewActor = World->SpawnActor<AStaticMeshActor>();
 
-	NewActor->SetActorLocation(Location);
-	UStaticMeshComponent* MeshComponent = NewActor->GetStaticMeshComponent();
-	if (MeshComponent)
-	{
-		MeshComponent->SetStaticMesh(Mesh);
-	}
-}
-
-float random() {
-	return (float)rand() / RAND_MAX;
-}
 
 // Sets default values for this component's properties
 ULandscapeGenerator::ULandscapeGenerator()
@@ -30,6 +17,7 @@ ULandscapeGenerator::ULandscapeGenerator()
 	PrimaryComponentTick.bCanEverTick = true;
 
 	HeightMapGenerator = CreateDefaultSubobject<UHeightMapGenerator>(TEXT("HeightMapGenerator"));
+	FoliageGenerator = CreateDefaultSubobject<UFoliageGenerator>(TEXT("FoliageGenerator"));
 	// ...
 }
 
@@ -89,7 +77,7 @@ void ULandscapeGenerator::GenerateLandscape(FTransform LandscapeTransform) {
 	InitializeWorldContext();
 	
 	Landscape = World -> SpawnActor<ALandscape>();
-
+	Landscape->SetFolderPath("GeneratedLandscape");
 	Landscape->bCanHaveLayersContent = false;
 	Landscape->LandscapeMaterial = GroundMaterial;
 	Landscape->SetActorTransform(LandscapeTransform);
@@ -110,12 +98,9 @@ void ULandscapeGenerator::GenerateLandscape(FTransform LandscapeTransform) {
 
 	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Landscape was created!"));
 
-	for (uint32_t x = 0; x < TotalSizeOnOneAxis; x++) {
-		for (uint32_t y = 0; y < TotalSizeOnOneAxis; y++) {
-			float rand = random();
-			if (rand < SpawnThreshhold) {
-				spawnActor(World, Mesh, FVector(x * 128, y * 128, HeightMapGenerator->HeightArray[x][y]));
-			}
-		}
-	}
+	GenerateFoliage();
+}
+
+void ULandscapeGenerator::GenerateFoliage() {
+	FoliageGenerator->GenerateFoliage(TotalSizeOnOneAxis, HeightMapGenerator->HeightArray, ScaleVector);
 }
