@@ -1,17 +1,13 @@
 // Fill out your copyright notice in the Description page of Project Settings.
-#include "Landscape.h"
 #include "LandscapeMasterProject.h"
+#include "Landscape.h"
 
 #include <math.h>
 #include <conio.h>
 
-
 #include <iostream>
 #include <array>
 
-
-
-UE_DISABLE_OPTIMIZATION
 // Sets default values
 ALandscapeMasterProject::ALandscapeMasterProject()
 {

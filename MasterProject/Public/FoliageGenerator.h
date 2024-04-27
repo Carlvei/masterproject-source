@@ -26,8 +26,6 @@ struct FStaticMeshInput {
 	UPROPERTY(EditAnywhere)
 	float MaxSize = 1;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	bool NormalToGround;
 };
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
@@ -40,15 +38,13 @@ public:
 	UFoliageGenerator();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TArray<FStaticMeshInput> Meshes;
-	
-	UPROPERTY(EditAnywhere, Meta = (MakeEditWidget = true))
-	float SpawnProbability = 0.00001;
+	bool DoGenerateFoliage;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	UStaticMesh* Mesh;
+	TArray<FStaticMeshInput> Meshes;
 
 	UWorld* World;
+
 
 protected:
 	// Called when the game starts

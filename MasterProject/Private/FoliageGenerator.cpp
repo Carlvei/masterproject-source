@@ -64,35 +64,68 @@ void UFoliageGenerator::GenerateFoliage(uint32_t TotalSizeOnOneAxis, double** He
 }
 
 void UFoliageGenerator::ComputePointInArray(uint32_t x, uint32_t y, FVector Scale, double** HeightArray) {
-	for (FStaticMeshInput MeshInput : Meshes) {
-		float rand = random();
+	FStaticMeshInput MeshInput = Meshes[0];
+	float rand = random();
 
-		if (rand < MeshInput.SpawnProbability) {
-			std::random_device LocationRandomDevice; // obtain a random number from hardware
-			std::mt19937 LocationRandomGen(LocationRandomDevice()); // seed the generator
-			std::uniform_real_distribution<> LocationRandomDistr(-1, 1);
+	if (rand < MeshInput.SpawnProbability) {
+		std::random_device LocationRandomDevice; // obtain a random number from hardware
+		std::mt19937 LocationRandomGen(LocationRandomDevice()); // seed the generator
+		std::uniform_real_distribution<> LocationRandomDistr(-1, 1);
 
-			float RandLocationX = LocationRandomDistr(LocationRandomGen) * Scale.X;
-			float RandLocationY = LocationRandomDistr(LocationRandomGen) * Scale.Y;
+		float RandLocationX = (LocationRandomDistr(LocationRandomGen) * Scale.X) / 2;
+		float RandLocationY = (LocationRandomDistr(LocationRandomGen) * Scale.Y) / 2;
 
-			FVector Location = FVector(x * Scale.X + RandLocationX, 
-				y * Scale.Y + RandLocationY, 
-				HeightArray[x][y]);
+		FVector Location = FVector(x * Scale.X,
+			y * Scale.Y,
+			HeightArray[x][y]);
 
-			FVector MeshScale;
-			if (MeshInput.MinSize != 1 || MeshInput.MaxSize != 1) {
-				std::random_device rd; // obtain a random number from hardware
-				std::mt19937 gen(rd()); // seed the generator
-				std::uniform_real_distribution<> distr(MeshInput.MinSize, MeshInput.MaxSize);
+		FVector MeshScale;
+		if (MeshInput.MinSize != 1 || MeshInput.MaxSize != 1) {
+			std::random_device rd; // obtain a random number from hardware
+			std::mt19937 gen(rd()); // seed the generator
+			std::uniform_real_distribution<> distr(MeshInput.MinSize, MeshInput.MaxSize);
 
-				float scale = distr(gen);
-				MeshScale = FVector(scale, scale, scale);
-			} else {
-				MeshScale = FVector(1, 1, 1);
-			}
-
-			SpawnActor(World, MeshInput.Mesh, Location, GenerateFolderName(MeshInput.FolderName), MeshScale);
+			float scale = distr(gen);
+			MeshScale = FVector(scale, scale, scale);
 		}
+		else {
+			MeshScale = FVector(1, 1, 1);
+		}
+
+		SpawnActor(World, MeshInput.Mesh, Location, GenerateFolderName(MeshInput.FolderName), MeshScale);
+
+		/*
+		for (FStaticMeshInput MeshInput : Meshes) {
+			float rand = random();
+
+			if (rand < MeshInput.SpawnProbability) {
+				std::random_device LocationRandomDevice; // obtain a random number from hardware
+				std::mt19937 LocationRandomGen(LocationRandomDevice()); // seed the generator
+				std::uniform_real_distribution<> LocationRandomDistr(-1, 1);
+
+				float RandLocationX = (LocationRandomDistr(LocationRandomGen) * Scale.X) / 2;
+				float RandLocationY = (LocationRandomDistr(LocationRandomGen) * Scale.Y) / 2;
+
+				FVector Location = FVector(x * Scale.X + RandLocationX,
+					y * Scale.Y + RandLocationY,
+					HeightArray[x][y]);
+
+				FVector MeshScale;
+				if (MeshInput.MinSize != 1 || MeshInput.MaxSize != 1) {
+					std::random_device rd; // obtain a random number from hardware
+					std::mt19937 gen(rd()); // seed the generator
+					std::uniform_real_distribution<> distr(MeshInput.MinSize, MeshInput.MaxSize);
+
+					float scale = distr(gen);
+					MeshScale = FVector(scale, scale, scale);
+				} else {
+					MeshScale = FVector(1, 1, 1);
+				}
+
+				SpawnActor(World, MeshInput.Mesh, Location, GenerateFolderName(MeshInput.FolderName), MeshScale);
+			}
+		}
+		*/
 	}
 }
 

@@ -41,19 +41,19 @@ void ULandscapeGenerator::TickComponent(float DeltaTime, ELevelTick TickType, FA
 }
 
 void ULandscapeGenerator::CalculateParameters() {
-	SectionsPerComponent = static_cast<int>(SectionsPerComponentInput);
-	ComponentsOnOneAxis = static_cast<int>(ComponentsOnOneAxisInput);
-	QuadsPerSectionOnOneAxis = static_cast<int>(QuadsPerSectionOnOneAxisInput);
+	SectionsPerComponent = static_cast<int>(SectionsPerComponentInput); // 4
+	ComponentsOnOneAxis = static_cast<int>(ComponentsOnOneAxisInput); // 32
+	QuadsPerSectionOnOneAxis = static_cast<int>(QuadsPerSectionOnOneAxisInput); // 63
 
-	TotalComponents = ComponentsOnOneAxis * ComponentsOnOneAxis;
-	QuadsPerSection = QuadsPerSectionOnOneAxis * QuadsPerSectionOnOneAxis;
-	QuadsPerComponent = QuadsPerSection * SectionsPerComponent;
-	ComponentSize = sqrt(QuadsPerComponent);
-	TotalSizeOnOneAxis = ComponentSize * ComponentsOnOneAxis + 1;
+	TotalComponents = ComponentsOnOneAxis * ComponentsOnOneAxis; // 1024
+	QuadsPerSection = QuadsPerSectionOnOneAxis * QuadsPerSectionOnOneAxis; // 3969
+	QuadsPerComponent = QuadsPerSection * SectionsPerComponent; // 3969 * 4 = 15876
+	ComponentSize = sqrt(QuadsPerComponent); // 126
+	TotalSizeOnOneAxis = ComponentSize * ComponentsOnOneAxis + 1; // 
 }
 
 void ULandscapeGenerator::GenerateHeightmap() {
-	HeightMapGenerator->GenerateHeightMap(TotalSizeOnOneAxis);
+	HeightMapGenerator->GenerateNewHeightMap(TotalSizeOnOneAxis);
 	HeightDataPerLayers.Add(FGuid(), MoveTemp(HeightMapGenerator->UHeightData));
 }
 
@@ -71,7 +71,7 @@ void ULandscapeGenerator::InitializeWorldContext() {
 
 void ULandscapeGenerator::GenerateLandscape(FTransform LandscapeTransform) {
 
-	if (static_cast<int>(GenerateNewLandscape) == 1) {
+	if (GenerateNewLandscape) {
 		CalculateParameters();
 		GenerateHeightmap();
 		GenerateMaterialImportLayers();
@@ -99,7 +99,9 @@ void ULandscapeGenerator::GenerateLandscape(FTransform LandscapeTransform) {
 
 		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Landscape was created!"));
 
-		GenerateFoliage();
+		if (FoliageGenerator->DoGenerateFoliage) {
+			GenerateFoliage();
+		}
 	}
 }
 

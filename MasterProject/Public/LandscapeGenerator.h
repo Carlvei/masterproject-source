@@ -40,12 +40,6 @@ enum class ComponentsOnOneAxis : uint16 {
 	I64 = 64 UMETA(DisplayName = "64")  // absolut keine gute Idee
 };
 
-UENUM()
-enum class GenerateNewLandscape : uint16 {
-	YES = 1 UMETA(DisplayName = "Yes"),
-	NO = 0 UMETA(DisplayName = "No")
-};
-
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class MASTERPROJECT_API ULandscapeGenerator : public UActorComponent
 {
@@ -77,7 +71,7 @@ public:
 	UMaterialInstance* GroundMaterial;
 
 	UPROPERTY(EditAnywhere, Meta = (MakeEditWidget = true))
-	GenerateNewLandscape GenerateNewLandscape = GenerateNewLandscape::YES;
+	bool GenerateNewLandscape;
 
 	uint32_t TotalComponents;
 
